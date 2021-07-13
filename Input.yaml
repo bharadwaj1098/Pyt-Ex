@@ -1,0 +1,6 @@
+---
+input_networks:
+  [[10, 3, 5]]
+optimizer:
+  ['Adam']
+---

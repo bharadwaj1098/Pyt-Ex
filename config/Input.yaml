@@ -1,5 +1,6 @@
 ---
 FIRST:
+  #batch_norm: true
   input_network: [10, 6, 3, 5]
   activation: ['ReLU', 'ReLU', 'ReLU'] #https://pytorch.org/docs/stable/nn.html#non-linear-activations-weighted-sum-nonlinearity
   optimizer: 'Adam'

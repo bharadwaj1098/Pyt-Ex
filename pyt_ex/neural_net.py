@@ -18,43 +18,28 @@ import torchvision.transforms as transforms
 from torch._C import device 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  
 
-class preprocessig:
-    """
-    the current plan is to not handle the categorical variables
-    for now add them under drop
-    TODO:-
-        1) The pre_processing pipeline built before this was bs so re-doing everything.
-        2) preprocess the data outside 
-    """
-    def __init__(self, dic):
-        self.dic = dic
-        self.raw_df = pd.read_csv(dic['file_name'])
-        self.category = dic['category']
-        self.numeric = dic['numeric']
-        self.drop = dic['drop']
-      
-    pass 
-
 
 class dynamic_nn(nn.Module):
+    '''
+    TODO :- 
+        1) Batch_norm layers
+        2) Graphics
+        3) deeper layers
+        4) Weighted sampling for class imbalance
+
+    Important points:-
+        1) No need to add the log_softmax activation to the last layer 
+        as cross_entropy loss does that for you while training.
+        2) However log_softmax need to be applied while validation and testing 
+        i.e; on the model output predictions and the next step would be the arg_max
+    '''
     def __init__(self, dic):
         super(dynamic_nn, self).__init__()
 
         self.struct = dic['input_network']
         self.activations = [i for i in dic['activation']]
-
-        '''
-        TODO :- 
-            1) Batch_norm layers
-            2) Graphics
-            3) deeper layers
-
-        Important points:-
-            1) No need to add the log_softmax activation to the last layer 
-            as cross_entropy loss does that for you while training.
-            2) However log_softmax need to be applied while validation and testing 
-            i.e; on the model output predictions and the next step would be the arg_max
-        '''
+        self.criterion = dic['loss_fn']
+        self.optimizer = dic['optimizer']
                                 
         if len(self.struct) == 3:
             self.model = nn.Sequential(
@@ -81,11 +66,38 @@ class dynamic_nn(nn.Module):
         print(self.model)
 
     def sample_data(self, size):
+        '''
+        By using TensorDataset you need not use 
+        '''
         X = torch.rand(size,10)
         y = torch.rand(size, 1)
         X, y = X.to(device), y.to(device)
         dataset = TensorDataset(X, y)
         return DataLoader(dataset, batch_size = size, shuffle=True)
+
+    def train_val(self):
+        pass
+
+    
+
+class ClassifierDataset(Dataset):
+    '''
+    to set data in a block.
+    this dataset will be used by the dataloader to pass the data
+    into the model.
+    X = float
+    y = long
+    '''
+    def __init__(self, X_data, y_data):
+        self.X_data = X_data
+        self.y_data = y_data
+        
+    def __getitem__(self, index):
+        return self.X_data[index], self.y_data[index]
+        
+    def __len__ (self):
+        return len(self.X_data)
+
 
 
 

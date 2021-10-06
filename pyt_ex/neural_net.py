@@ -20,7 +20,7 @@ from torch._C import device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  
 
 
-class dynamic_nn(nn.Module):
+class Ann(nn.Module):
     '''
     TODO :- 
         1) Batch_norm layers
@@ -35,12 +35,12 @@ class dynamic_nn(nn.Module):
         i.e; on the model output predictions and the next step would be the arg_max
     '''
     def __init__(self, dic):
-        super(dynamic_nn, self).__init__()
+        super(Ann, self).__init__()
         self.dic=dic
         self.struct = dic['input_network']
         self.activations = [i for i in dic['activation']]
         self.criterion = getattr(nn, dic['loss_fn'])()
-        self.optimizer = getattr(optim, dic['optimizer'])()
+        # self.optimizer = optim.getattr(optim, dic['optimizer'])(self.model.parameters(), lr = self.dic['learning_rate'])
 
         if len(self.struct) == 3:
             self.model = nn.Sequential(
@@ -87,8 +87,9 @@ class dynamic_nn(nn.Module):
         add loss and accuracy of each minibatch to average it for loss of whole epoch and accuracy
         '''
         print("Begin_training")
-        optimizer = self.optimizer(self.model.parameters(), lr = self.dic['learning_rate'])
+        optimizer = getattr(optim, self.dic['optimizer'])(self.model.parameters(), lr = self.dic['learning_rate'])
         self.train_loss_list, self.val_loss_list = [], []
+        self.train_acc_list, self.val_acc_list = [], []
 
         for i in tqdm(range(1, self.dic['epochs']+1 )):
             train_epoch_loss, val_epoch_loss = 0, 0
@@ -99,7 +100,6 @@ class dynamic_nn(nn.Module):
                 optimizer.zero_grad()
 
                 y_pred = self.model(X)
-                
                 train_loss = self.criterion(y_pred, y)
                 train_acc = self.multi_acc(y_pred, y)
 
@@ -120,22 +120,24 @@ class dynamic_nn(nn.Module):
 
                     val_epoch_loss += val_loss
                     val_epoch_acc += val_acc 
-
+            
+            self.train_loss_list.append(train_epoch_loss/len(train_dataloader))
+            self.val_loss_list.append(val_epoch_loss/len(val_dataloader))
+            self.train_acc_list.append(train_epoch_acc/len(train_dataloader))
+            self.val_acc_list.append(val_epoch_acc/len(val_dataloader))
 
     def multi_acc(self, y_pred, y_test):
 
-        if self.criterion=="CrossEntropyLoss":
+        if self.dic['loss_fn']=="CrossEntropyLoss":
             y_pred_softmax = torch.log_softmax(y_pred, dim = 1)
             _, y_pred_tags = torch.max(y_pred_softmax, dim = 1)    
         
-        elif self.criterion=="MSELoss":
+        elif self.dic['loss_fn']=="MSELoss":
             _, y_pred_tags = torch.max(y_pred, dim = 1)    
             
         correct_pred = (y_pred_tags == y_test).float()
         accuracy = correct_pred.sum() / len(correct_pred)
         accuracy = torch.round(accuracy * 100)
         return accuracy
-        
-
-
-
+    
+    

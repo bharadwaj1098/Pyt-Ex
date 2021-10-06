@@ -1,11 +1,21 @@
 ---
 FIRST:
   #batch_norm: true
-  input_network: [10, 6, 3, 5]
+  input_network: [11, 6, 3, 6]
+  activation: ['ReLU', 'ReLU', 'ReLU'] #https://pytorch.org/docs/stable/nn.html#non-linear-activations-weighted-sum-nonlinearity
+  optimizer: 'Adam'
+  learning_rate: 0.0001 #1e-4
+  weight_decay: 0.1 #1e-1
+  loss_fn: 'CrossEntropyLoss' #https://neptune.ai/blog/pytorch-loss-functions for classification
+  epochs: 10
+  batch_size: 16
+
+SECOND:
+  input_network: [11, 6, 3, 6]
   activation: ['ReLU', 'ReLU', 'ReLU'] #https://pytorch.org/docs/stable/nn.html#non-linear-activations-weighted-sum-nonlinearity
   optimizer: 'Adam'
   learning_rate: 0.0001 #1e-4
   weight_decay: 0.1 #1e-1
   loss_fn: 'MSELoss' #https://neptune.ai/blog/pytorch-loss-functions for classification
-  epochs: 100
+  epochs: 10
   batch_size: 16

@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd 
 import os
 from tqdm import tqdm
+from matplotlib import pyplot as plt
 
 import warnings 
 warnings.filterwarnings("ignore") 
@@ -34,12 +35,13 @@ class Ann(nn.Module):
         2) However log_softmax need to be applied while validation and testing 
         i.e; on the model output predictions and the next step would be the arg_max
     '''
-    def __init__(self, dic):
+    def __init__(self, dic, **kwargs):
         super(Ann, self).__init__()
+        # super().__init__(**kwargs)
         self.dic=dic
         self.struct = dic['input_network']
         self.activations = [i for i in dic['activation']]
-        self.criterion = getattr(nn, dic['loss_fn'])()
+        #self.criterion = dic['loss_fn'] #getattr(nn, dic['loss_fn'])()
         # self.optimizer = optim.getattr(optim, dic['optimizer'])(self.model.parameters(), lr = self.dic['learning_rate'])
 
         if len(self.struct) == 3:
@@ -88,19 +90,25 @@ class Ann(nn.Module):
         '''
         print("Begin_training")
         optimizer = getattr(optim, self.dic['optimizer'])(self.model.parameters(), lr = self.dic['learning_rate'])
+        criterion = getattr(nn, self.dic['loss_fn'])()
         self.train_loss_list, self.val_loss_list = [], []
         self.train_acc_list, self.val_acc_list = [], []
 
         for i in tqdm(range(1, self.dic['epochs']+1 )):
             train_epoch_loss, val_epoch_loss = 0, 0
             train_epoch_acc, val_epoch_acc = 0, 0
-            self.model.train()
+            self.model.to(device)
             for X, y in train_dataloader:
                 X, y = X.to(device), y.to(device)
                 optimizer.zero_grad()
 
                 y_pred = self.model(X)
-                train_loss = self.criterion(y_pred, y)
+
+                if self.dic['loss_fn'] == 'MSELoss':
+                    _, y_pred = torch.max(y_pred, dim = 1) 
+                
+                train_loss = criterion(y_pred, y)
+                
                 train_acc = self.multi_acc(y_pred, y)
 
                 train_loss.backward()
@@ -115,7 +123,7 @@ class Ann(nn.Module):
                 for X, y in val_dataloader:
                     X, y = X.to(device), y.to(device)
                     y_pred = self.model(X)
-                    val_loss = self.criterion(y_pred, y)
+                    val_loss = criterion(y_pred, y)
                     val_acc = self.multi_acc(y_pred, y)
 
                     val_epoch_loss += val_loss
@@ -139,5 +147,27 @@ class Ann(nn.Module):
         accuracy = correct_pred.sum() / len(correct_pred)
         accuracy = torch.round(accuracy * 100)
         return accuracy
+
+    def accuracy_plot(self):
+        plt.plot(self.train_acc_list, label = 'train_acc_list')
+        plt.plot(self.val_acc_list, label = 'val_acc_list')
+        plt.legend()
+
+    def loss_plot(self):
+        plt.plot(self.train_loss_list, label = 'train_loss_list')
+        plt.plot(self.val_loss_list, label = 'val_loss_list')
+        plt.legend()
+
+# class grahics(graphics_parent):
+#     def __init__(self):
+#         super().__init__()
     
+#     def loss_plot(self):
+#         plt.plot(self.train_loss_list, label = 'train_loss_list')
+#         plt.plot(self.val_loss_list, label = 'val_loss_list')
+#         plt.legend()
     
+#     def accuracy_plot(self):
+#         plt.plot(self.train_acc_list, label = 'train_acc_list')
+#         plt.plot(self.val_acc_list, label = 'val_acc_list')
+#         plt.legend() 

@@ -16,6 +16,6 @@ SECOND:
   optimizer: 'Adam'
   learning_rate: 0.0001 #1e-4
   weight_decay: 0.1 #1e-1
-  loss_fn: 'MSELoss' #https://neptune.ai/blog/pytorch-loss-functions for classification
+  loss_fn: 'CrossEntropyLoss' #https://neptune.ai/blog/pytorch-loss-functions for classification
   epochs: 10
   batch_size: 16

@@ -10,7 +10,8 @@ import time
 import random
 import yaml 
 
-import torch 
+import torch
+torch.manual_seed(10)
 import torch.optim as optim
 from torch.optim.lr_scheduler import MultiStepLR
 import torch.nn.functional as F
@@ -78,7 +79,7 @@ class Ann(nn.Module):
         dataset = TensorDataset(X, y)
         return DataLoader(dataset, batch_size = size, shuffle=True)
 
-    def train_val(self, train_dataloader, val_dataloader=None):
+    def train_val(self, train_dataloader, val_dataloader=None, test_dataloader=None):
         '''
         We’re using the nn.CrossEntropyLoss because this is a multiclass classification problem. 
         We don’t have to manually apply a log_softmax layer after our final layer because nn.CrossEntropyLoss does that for us. 
@@ -117,22 +118,42 @@ class Ann(nn.Module):
                 train_epoch_loss += train_loss.item() 
                 train_epoch_acc += train_acc
 
-            
-            with torch.no_grad():
-                self.model.eval()
-                for X, y in val_dataloader:
-                    X, y = X.to(device), y.to(device)
-                    y_pred = self.model(X)
-                    val_loss = criterion(y_pred, y)
-                    val_acc = self.multi_acc(y_pred, y)
+            if val_dataloader is not None:
+                with torch.no_grad():
+                    self.model.eval()
+                    for X, y in val_dataloader:
+                        X, y = X.to(device), y.to(device)
+                        y_pred = self.model(X)
+                        val_loss = criterion(y_pred, y)
+                        val_acc = self.multi_acc(y_pred, y)
 
-                    val_epoch_loss += val_loss
-                    val_epoch_acc += val_acc 
+                        val_epoch_loss += val_loss
+                        val_epoch_acc += val_acc 
+                self.val_acc_list.append(val_epoch_acc/len(val_dataloader))
+                self.val_loss_list.append(val_epoch_loss/len(val_dataloader))
+
             
             self.train_loss_list.append(train_epoch_loss/len(train_dataloader))
-            self.val_loss_list.append(val_epoch_loss/len(val_dataloader))
             self.train_acc_list.append(train_epoch_acc/len(train_dataloader))
-            self.val_acc_list.append(val_epoch_acc/len(val_dataloader))
+
+            self.Output = []
+            if test_dataloader is not None:
+                with torch.no_grad():
+                    output = []
+                    self.model.eval()
+                    for X_batch, _ in test_dataloader:
+                        X_batch = X_batch.to(device)
+                        y_test_pred = self.model(X_batch)
+                        _, y_pred_tags = torch.max(y_test_pred, dim = 1)
+                        output.append(y_pred_tags.cpu().numpy() )
+                    
+                for i in output:
+                    for j in i:
+                        self.Output.append(j)
+
+
+                # self.Output = [a.squeeze().tolist() for a in self.Output]
+
 
     def multi_acc(self, y_pred, y_test):
 
@@ -148,15 +169,15 @@ class Ann(nn.Module):
         accuracy = torch.round(accuracy * 100)
         return accuracy
 
-    def accuracy_plot(self):
-        plt.plot(self.train_acc_list, label = 'train_acc_list')
-        plt.plot(self.val_acc_list, label = 'val_acc_list')
-        plt.legend()
+    # def accuracy_plot(self):
+    #     plt.plot(self.train_acc_list, label = 'train_acc_list')
+    #     plt.plot(self.val_acc_list, label = 'val_acc_list')
+    #     plt.legend()
 
-    def loss_plot(self):
-        plt.plot(self.train_loss_list, label = 'train_loss_list')
-        plt.plot(self.val_loss_list, label = 'val_loss_list')
-        plt.legend()
+    # def loss_plot(self):
+    #     plt.plot(self.train_loss_list, label = 'train_loss_list')
+    #     plt.plot(self.val_loss_list, label = 'val_loss_list')
+    #     plt.legend()
 
 # class grahics(graphics_parent):
 #     def __init__(self):

@@ -79,7 +79,7 @@ class Ann(nn.Module):
         dataset = TensorDataset(X, y)
         return DataLoader(dataset, batch_size = size, shuffle=True)
 
-    def train_val(self, train_dataloader, val_dataloader=None, test_dataloader=None):
+    def train_val(self, train_dataloader, val_dataloader=None, test_dataloader=None, dataloader=None):
         '''
         We’re using the nn.CrossEntropyLoss because this is a multiclass classification problem. 
         We don’t have to manually apply a log_softmax layer after our final layer because nn.CrossEntropyLoss does that for us. 

@@ -136,24 +136,39 @@ class Ann(nn.Module):
             self.train_loss_list.append(train_epoch_loss/len(train_dataloader))
             self.train_acc_list.append(train_epoch_acc/len(train_dataloader))
 
-            self.Output = []
-            if test_dataloader is not None:
-                with torch.no_grad():
-                    output = []
-                    self.model.eval()
-                    for X_batch, _ in test_dataloader:
-                        X_batch = X_batch.to(device)
-                        y_test_pred = self.model(X_batch)
-                        _, y_pred_tags = torch.max(y_test_pred, dim = 1)
-                        output.append(y_pred_tags.cpu().numpy() )
+            self.Output = self.model_final(test_dataloader)
+            # if test_dataloader is not None:
+            #     with torch.no_grad():
+            #         output = []
+            #         self.model.eval()
+            #         for X_batch, _ in test_dataloader:
+            #             X_batch = X_batch.to(device)
+            #             y_test_pred = self.model(X_batch)
+            #             _, y_pred_tags = torch.max(y_test_pred, dim = 1)
+            #             output.append(y_pred_tags.cpu().numpy() )
                     
-                for i in output:
-                    for j in i:
-                        self.Output.append(j)
+            #     for i in output:
+            #         for j in i:
+            #             self.Output.append(j)
 
 
                 # self.Output = [a.squeeze().tolist() for a in self.Output]
 
+    def model_final(self, dataloader=None):
+        output = []
+        if dataloader is not None:
+            with torch.no_grad():
+                prediction = []
+                self.model.eval()
+                for X_batch, _ in dataloader:
+                    X_batch = X_batch.to(device)
+                    y_test_pred = self.model(X_batch)
+                    _, y_pred_tags = torch.max(y_test_pred, dim = 1)
+                    prediction.append(y_pred_tags.cpu().numpy() ) 
+            for i in prediction:
+                for j in i:
+                    output.append(j)
+            return output 
 
     def multi_acc(self, y_pred, y_test):
 

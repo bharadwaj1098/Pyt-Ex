@@ -7,7 +7,7 @@ FIRST:
   learning_rate: 0.001 #1e-4
   weight_decay: 0.1 #1e-1
   loss_fn: 'CrossEntropyLoss' #https://neptune.ai/blog/pytorch-loss-functions for classification
-  epochs: 1000
+  epochs: 10000
   batch_size: 16
 
 # SECOND:

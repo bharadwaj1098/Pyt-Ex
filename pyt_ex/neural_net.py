@@ -89,121 +89,92 @@ class Ann(nn.Module):
 
         add loss and accuracy of each minibatch to average it for loss of whole epoch and accuracy
         '''
-        print("Begin_training")
+        # print("Begin_training")
         optimizer = getattr(optim, self.dic['optimizer'])(self.model.parameters(), lr = self.dic['learning_rate'])
         criterion = getattr(nn, self.dic['loss_fn'])()
         self.train_loss_list, self.val_loss_list = [], []
         self.train_acc_list, self.val_acc_list = [], []
 
-        for i in tqdm(range(1, self.dic['epochs']+1 )):
+        for i in range(1, self.dic['epochs']+1 ):#tqdm(range(1, self.dic['epochs']+1 )):
             train_epoch_loss, val_epoch_loss = 0, 0
-            train_epoch_acc, val_epoch_acc = 0, 0
+            # train_epoch_acc, val_epoch_acc = 
+            # Y_train = []
+            train_prediction = []
+            train_ground_truth = []
+
             self.model.to(device)
+            # acc = 0
             for X, y in train_dataloader:
                 X, y = X.to(device), y.to(device)
                 optimizer.zero_grad()
 
-                y_pred = self.model(X)
+                y_pred = self.model(X.to(device))
+
+                _, y_pred_tags = torch.max(y_pred, dim = 1)
+                train_prediction.append(y_pred_tags.cpu().numpy() ) 
+                train_ground_truth.append(y)
 
                 if self.dic['loss_fn'] == 'MSELoss':
                     _, y_pred = torch.max(y_pred, dim = 1) 
                 
                 train_loss = criterion(y_pred, y)
-                
-                train_acc = self.multi_acc(y_pred, y)
-
                 train_loss.backward()
                 optimizer.step()
-
-                train_epoch_loss += train_loss.item() 
-                train_epoch_acc += train_acc
+                train_epoch_loss += train_loss.item()
+            acc = self.multi_acc(self._nested_list(train_prediction), self._nested_list(train_ground_truth))
+            
+            self.train_acc_list.append(acc)
+            self.train_loss_list.append(train_epoch_loss/len(train_dataloader))
 
             if val_dataloader is not None:
                 with torch.no_grad():
                     self.model.eval()
+                    val_prediction = []
+                    val_ground_truth = []
                     for X, y in val_dataloader:
                         X, y = X.to(device), y.to(device)
                         y_pred = self.model(X)
                         val_loss = criterion(y_pred, y)
-                        val_acc = self.multi_acc(y_pred, y)
-
-                        val_epoch_loss += val_loss
-                        val_epoch_acc += val_acc 
-                self.val_acc_list.append(val_epoch_acc/len(val_dataloader))
+                        _, y_pred_tags = torch.max(y_pred, dim = 1)
+                        val_prediction.append(y_pred_tags.cpu().numpy() ) 
+                        val_ground_truth.append(y)
+                        val_epoch_loss += val_loss.item()
+                
+                val_acc = self.multi_acc(self._nested_list(train_prediction), self._nested_list(train_ground_truth))
+                self.val_acc_list.append(val_acc)
                 self.val_loss_list.append(val_epoch_loss/len(val_dataloader))
 
-            
-            self.train_loss_list.append(train_epoch_loss/len(train_dataloader))
-            self.train_acc_list.append(train_epoch_acc/len(train_dataloader))
-
-            self.Output = self.model_final(test_dataloader)
-            # if test_dataloader is not None:
-            #     with torch.no_grad():
-            #         output = []
-            #         self.model.eval()
-            #         for X_batch, _ in test_dataloader:
-            #             X_batch = X_batch.to(device)
-            #             y_test_pred = self.model(X_batch)
-            #             _, y_pred_tags = torch.max(y_test_pred, dim = 1)
-            #             output.append(y_pred_tags.cpu().numpy() )
-                    
-            #     for i in output:
-            #         for j in i:
-            #             self.Output.append(j)
-
-
-                # self.Output = [a.squeeze().tolist() for a in self.Output]
+    
+            self.test_Output, self.test_acc = self.model_final(test_dataloader)
 
     def model_final(self, dataloader=None):
-        output = []
         if dataloader is not None:
             with torch.no_grad():
                 prediction = []
+                ground_truth = []
                 self.model.eval()
-                for X_batch, _ in dataloader:
+                for X_batch, y in dataloader:
                     X_batch = X_batch.to(device)
                     y_test_pred = self.model(X_batch)
                     _, y_pred_tags = torch.max(y_test_pred, dim = 1)
                     prediction.append(y_pred_tags.cpu().numpy() ) 
-            for i in prediction:
-                for j in i:
-                    output.append(j)
-            return output 
+                    ground_truth.append(y)
 
-    def multi_acc(self, y_pred, y_test):
-
-        if self.dic['loss_fn']=="CrossEntropyLoss":
-            y_pred_softmax = torch.log_softmax(y_pred, dim = 1)
-            _, y_pred_tags = torch.max(y_pred_softmax, dim = 1)    
-        
-        elif self.dic['loss_fn']=="MSELoss":
-            _, y_pred_tags = torch.max(y_pred, dim = 1)    
+            output = self._nested_list(prediction)
+            y_test = self._nested_list(ground_truth)
             
-        correct_pred = (y_pred_tags == y_test).float()
-        accuracy = correct_pred.sum() / len(correct_pred)
-        accuracy = torch.round(accuracy * 100)
-        return accuracy
+            return output, self.multi_acc(output, y_test)
 
-    # def accuracy_plot(self):
-    #     plt.plot(self.train_acc_list, label = 'train_acc_list')
-    #     plt.plot(self.val_acc_list, label = 'val_acc_list')
-    #     plt.legend()
+    def multi_acc(self, a, b):
+        c = 0
+        for i in range(len(b)):
+            if a[i] == b[i]:
+                c+=1
+        return c/len(b)
 
-    # def loss_plot(self):
-    #     plt.plot(self.train_loss_list, label = 'train_loss_list')
-    #     plt.plot(self.val_loss_list, label = 'val_loss_list')
-    #     plt.legend()
-
-# class grahics(graphics_parent):
-#     def __init__(self):
-#         super().__init__()
-    
-#     def loss_plot(self):
-#         plt.plot(self.train_loss_list, label = 'train_loss_list')
-#         plt.plot(self.val_loss_list, label = 'val_loss_list')
-#         plt.legend()
-    
-#     def accuracy_plot(self):
-#         plt.plot(self.train_acc_list, label = 'train_acc_list')
-#         plt.plot(self.val_acc_list, label = 'val_acc_list')
-#         plt.legend() 
+    def _nested_list(self, old_list):
+        new_list = []
+        for i in old_list:
+            for j in i:
+                new_list.append(j)
+        return new_list

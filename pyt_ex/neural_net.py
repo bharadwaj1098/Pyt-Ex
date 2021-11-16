@@ -9,9 +9,7 @@ warnings.filterwarnings("ignore")
 import time 
 import random
 import yaml 
-
-import torch
-torch.manual_seed(10)
+import torch 
 import torch.optim as optim
 from torch.optim.lr_scheduler import MultiStepLR
 import torch.nn.functional as F
@@ -48,14 +46,17 @@ class Ann(nn.Module):
         if len(self.struct) == 3:
             self.model = nn.Sequential(
                             nn.Linear(self.struct[0], self.struct[1]),
+                            getattr(nn, 'BatchNorm1d')(self.struct[1]),
                             getattr(nn, self.activations[0])(),
                             nn.Linear(self.struct[1], self.struct[2])
                         )
         elif len(self.struct) == 4:
             self.model = nn.Sequential(
                             nn.Linear(self.struct[0], self.struct[1]),
+                            getattr(nn, 'BatchNorm1d')(self.struct[1]),
                             getattr(nn, self.activations[0])(),
                             nn.Linear(self.struct[1], self.struct[2]),
+                            getattr(nn, 'BatchNorm1d')(self.struct[2]),
                             getattr(nn, self.activations[1])(),
                             nn.Linear(self.struct[2], self.struct[3])
                         )
@@ -79,7 +80,7 @@ class Ann(nn.Module):
         dataset = TensorDataset(X, y)
         return DataLoader(dataset, batch_size = size, shuffle=True)
 
-    def train_val(self, train_dataloader, val_dataloader=None, test_dataloader=None, dataloader=None):
+    def train_val(self, train_dataloader, val_dataloader=None, test_dataloader=None, full_dataloader=None):
         '''
         We’re using the nn.CrossEntropyLoss because this is a multiclass classification problem. 
         We don’t have to manually apply a log_softmax layer after our final layer because nn.CrossEntropyLoss does that for us. 
@@ -109,8 +110,8 @@ class Ann(nn.Module):
                 optimizer.zero_grad()
 
                 y_pred = self.model(X.to(device))
-
-                _, y_pred_tags = torch.max(y_pred, dim = 1)
+                y_pred_softmax = torch.log_softmax(y_pred, dim = 1)
+                _, y_pred_tags = torch.max(y_pred_softmax, dim = 1)
                 train_prediction.append(y_pred_tags.cpu().numpy() ) 
                 train_ground_truth.append(y)
 
@@ -135,7 +136,8 @@ class Ann(nn.Module):
                         X, y = X.to(device), y.to(device)
                         y_pred = self.model(X)
                         val_loss = criterion(y_pred, y)
-                        _, y_pred_tags = torch.max(y_pred, dim = 1)
+                        y_pred_softmax = torch.log_softmax(y_pred, dim = 1)
+                        _, y_pred_tags = torch.max(y_pred_softmax, dim = 1)
                         val_prediction.append(y_pred_tags.cpu().numpy() ) 
                         val_ground_truth.append(y)
                         val_epoch_loss += val_loss.item()
@@ -144,8 +146,11 @@ class Ann(nn.Module):
                 self.val_acc_list.append(val_acc)
                 self.val_loss_list.append(val_epoch_loss/len(val_dataloader))
 
-    
-            self.test_Output, self.test_acc = self.model_final(test_dataloader)
+        with torch.no_grad():
+            if test_dataloader is not None:
+                self.test_Output, self.test_acc = self.model_final(test_dataloader)
+            if full_dataloader is not None:
+                self.predictions, self.final_acc = self.model_final(full_dataloader)
 
     def model_final(self, dataloader=None):
         if dataloader is not None:
@@ -156,7 +161,8 @@ class Ann(nn.Module):
                 for X_batch, y in dataloader:
                     X_batch = X_batch.to(device)
                     y_test_pred = self.model(X_batch)
-                    _, y_pred_tags = torch.max(y_test_pred, dim = 1)
+                    y_pred_softmax = torch.log_softmax(y_test_pred, dim = 1)
+                    _, y_pred_tags = torch.max(y_pred_softmax, dim = 1)
                     prediction.append(y_pred_tags.cpu().numpy() ) 
                     ground_truth.append(y)
 

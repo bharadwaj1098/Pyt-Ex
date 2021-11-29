@@ -3,7 +3,7 @@ import pandas as pd
 import os
 from tqdm import tqdm
 from matplotlib import pyplot as plt
-
+import torchbnn as bnn
 import warnings 
 warnings.filterwarnings("ignore") 
 import time 
@@ -42,24 +42,44 @@ class Ann(nn.Module):
         self.activations = [i for i in dic['activation']]
         #self.criterion = dic['loss_fn'] #getattr(nn, dic['loss_fn'])()
         # self.optimizer = optim.getattr(optim, dic['optimizer'])(self.model.parameters(), lr = self.dic['learning_rate'])
+        if self.dic['type'] == 'ann':
+            if len(self.struct) == 3:
+                self.model = nn.Sequential(
+                                nn.Linear(self.struct[0], self.struct[1]),
+                                getattr(nn, 'BatchNorm1d')(self.struct[1]),
+                                getattr(nn, self.activations[0])(),
+                                nn.Linear(self.struct[1], self.struct[2])
+                            )
+            elif len(self.struct) == 4:
+                self.model = nn.Sequential(
+                                nn.Linear(self.struct[0], self.struct[1]),
+                                getattr(nn, 'BatchNorm1d')(self.struct[1]),
+                                getattr(nn, self.activations[0])(),
+                                nn.Linear(self.struct[1], self.struct[2]),
+                                getattr(nn, 'BatchNorm1d')(self.struct[2]),
+                                getattr(nn, self.activations[1])(),
+                                nn.Linear(self.struct[2], self.struct[3])
+                            )
+        
+        if self.dic['type'] =='bnn':
+            if len(self.struct) == 3:
+                self.model = nn.Sequential(
+                                bnn.BayesLinear(prior_mu=0, prior_sigma=0.1, in_features=self.struct[0], out_features=self.struct[1]),
+                                getattr(nn, 'BatchNorm1d')(self.struct[1]),
+                                getattr(nn, self.activations[0])(),
+                                bnn.BayesLinear(prior_mu=0, prior_sigma=0.1, in_features=self.struct[1], out_features=self.struct[2])
+                            )
+            elif len(self.struct) == 4:
+                self.model = nn.Sequential(
+                                bnn.BayesLinear(prior_mu=0, prior_sigma=0.1, in_features=self.struct[0], out_features=self.struct[1]),
+                                getattr(nn, 'BatchNorm1d')(self.struct[1]),
+                                getattr(nn, self.activations[0])(),
+                                bnn.BayesLinear(prior_mu=0, prior_sigma=0.1, in_features=self.struct[1], out_features=self.struct[2]),
+                                getattr(nn, 'BatchNorm1d')(self.struct[2]),
+                                getattr(nn, self.activations[1])(),
+                                bnn.BayesLinear(prior_mu=0, prior_sigma=0.1, in_features=self.struct[2], out_features=self.struct[3]),
+                            )
 
-        if len(self.struct) == 3:
-            self.model = nn.Sequential(
-                            nn.Linear(self.struct[0], self.struct[1]),
-                            getattr(nn, 'BatchNorm1d')(self.struct[1]),
-                            getattr(nn, self.activations[0])(),
-                            nn.Linear(self.struct[1], self.struct[2])
-                        )
-        elif len(self.struct) == 4:
-            self.model = nn.Sequential(
-                            nn.Linear(self.struct[0], self.struct[1]),
-                            getattr(nn, 'BatchNorm1d')(self.struct[1]),
-                            getattr(nn, self.activations[0])(),
-                            nn.Linear(self.struct[1], self.struct[2]),
-                            getattr(nn, 'BatchNorm1d')(self.struct[2]),
-                            getattr(nn, self.activations[1])(),
-                            nn.Linear(self.struct[2], self.struct[3])
-                        )
     
     def forward(self, x):
         return self.model(x)
@@ -80,7 +100,7 @@ class Ann(nn.Module):
         dataset = TensorDataset(X, y)
         return DataLoader(dataset, batch_size = size, shuffle=True)
 
-    def train_val(self, train_dataloader, val_dataloader=None, test_dataloader=None, full_dataloader=None):
+    def fit(self, train_dataloader, val_dataloader=None, test_dataloader=None, full_dataloader=None):
         '''
         We’re using the nn.CrossEntropyLoss because this is a multiclass classification problem. 
         We don’t have to manually apply a log_softmax layer after our final layer because nn.CrossEntropyLoss does that for us. 

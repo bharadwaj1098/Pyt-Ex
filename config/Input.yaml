@@ -1,5 +1,6 @@
 ---
-ONE:
+1:
+  type: 'bnn'
   input_network: [13, 6, 6]
   activation: ['ReLU'] #https://pytorch.org/docs/stable/nn.html#non-linear-activations-weighted-sum-nonlinearity
   optimizer: 'Adam'
@@ -8,22 +9,14 @@ ONE:
   loss_fn: 'CrossEntropyLoss' #https://neptune.ai/blog/pytorch-loss-functions for classification
   epochs: 1000
   batch_size: 64
-TWO:
-  input_network: [13, 6, 6]
-  activation: ['ReLU', 'ReLU'] #https://pytorch.org/docs/stable/nn.html#non-linear-activations-weighted-sum-nonlinearity
-  optimizer: 'Adam'
-  learning_rate: 0.01 
-  weight_decay: 0.1 
-  loss_fn: 'CrossEntropyLoss' #https://neptune.ai/blog/pytorch-loss-functions for classification
-  epochs: 1000
-  batch_size: 16
-
-# SECOND:
-#   input_network: [13, 3, 2, 6]
-#   activation: ['ReLU', 'ReLU', 'ReLU'] #https://pytorch.org/docs/stable/nn.html#non-linear-activations-weighted-sum-nonlinearity
+# 2:
+#   type: 'bnn'
+#   input_network: [13, 6, 6]
+#   activation: ['ReLU', 'ReLU'] #https://pytorch.org/docs/stable/nn.html#non-linear-activations-weighted-sum-nonlinearity
 #   optimizer: 'Adam'
-#   learning_rate: 0.0001 #1e-4
-#   weight_decay: 0.1 #1e-1
+#   learning_rate: 0.01 
+#   weight_decay: 0.1 
 #   loss_fn: 'CrossEntropyLoss' #https://neptune.ai/blog/pytorch-loss-functions for classification
-#   epochs: 10000
+#   epochs: 1000
 #   batch_size: 16
+

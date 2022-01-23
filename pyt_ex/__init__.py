@@ -1,3 +1,3 @@
 #this is the init script
-from . import neural_net 
-from . import data_utils
+from .neural_net import  *
+from .data_utils import *

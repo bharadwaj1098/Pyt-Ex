@@ -53,6 +53,7 @@ class FastTensorDataLoader:
     TensorDataset + DataLoader because dataloader grabs individual indices of
     the dataset and calls cat (slow).
     Source: https://discuss.pytorch.org/t/dataloader-much-slower-than-manual-batching/27014/6
+    medium article :- https://towardsdatascience.com/better-data-loading-20x-pytorch-speed-up-for-tabular-data-e264b9e34352
     """
     def __init__(self, *tensors, batch_size=32, shuffle=False):
         """
